@@ -127,9 +127,13 @@
                     body: new URLSearchParams({text: text})
                 });
                 
-                const data = await response.json();
-                
-                if (response.ok && data.success) {
+                const contentType = response.headers.get('content-type') || '';
+                let data = null;
+                if (contentType.includes('application/json')) {
+                    try { data = await response.json(); } catch (e) { data = null; }
+                }
+
+                if (response.ok && data && data.success) {
                     // Display results
                     document.getElementById('result-text').textContent = data.text;
                     document.getElementById('result-emotion').textContent = data.emotion;
@@ -162,9 +166,18 @@
                     });
                     
                 } else {
-                    // Display error
-                    document.getElementById('error-message').textContent = 
-                        data.error || 'Unknown error occurred. Please try again.';
+                    // Display error (attempt to read text if not JSON)
+                    let serverMessage = '';
+                    try {
+                        if (!contentType.includes('application/json')) {
+                            serverMessage = (await response.text()).trim();
+                        } else if (data && data.error) {
+                            serverMessage = data.error;
+                        }
+                    } catch (_) { /* ignore */ }
+
+                    const msg = serverMessage || 'Unknown server error or empty response.';
+                    document.getElementById('error-message').textContent = `HTTP ${response.status}: ${msg}`;
                     document.getElementById('error-alert').style.display = 'block';
                 }
             } catch (error) {
