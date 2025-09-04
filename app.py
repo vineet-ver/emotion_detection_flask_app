@@ -91,6 +91,15 @@ def api_predict():
     """API endpoint for programmatic access"""
     return predict()
 
+# Ensure server errors return JSON so the frontend can parse gracefully
+@app.errorhandler(500)
+def handle_internal_error(error):
+    return jsonify({
+        'error': 'Internal server error',
+        'details': str(error),
+        'success': False
+    }), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
